@@ -20,6 +20,7 @@
 
 package org.freenetproject.freemail.wot;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -27,28 +28,27 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import freenet.clients.fcp.FCPPluginConnection;
+import freenet.clients.fcp.FCPPluginMessage;
+import freenet.pluginmanager.FredPluginFCPMessageHandler;
 import org.freenetproject.freemail.utils.Logger;
 import org.freenetproject.freemail.utils.SimpleFieldSetFactory;
 import org.freenetproject.freemail.utils.Timer;
 
-import freenet.pluginmanager.FredPluginTalker;
 import freenet.pluginmanager.PluginNotFoundException;
 import freenet.pluginmanager.PluginRespirator;
-import freenet.pluginmanager.PluginTalker;
 import freenet.support.SimpleFieldSet;
 import freenet.support.api.Bucket;
 
 class WoTConnectionImpl implements WoTConnection {
-	private static final String WOT_PLUGIN_NAME = "plugins.WebOfTrust.WebOfTrust";
-	private static final String CONNECTION_IDENTIFIER = "Freemail";
 
-	private final PluginTalker pluginTalker;
+	private final FCPPluginConnection fcpPluginConnection;
 
-	private Message reply = null;
+	private FCPPluginMessage reply = null;
 	private final Object replyLock = new Object();
 
 	WoTConnectionImpl(PluginRespirator pr) throws PluginNotFoundException {
-		pluginTalker = pr.getPluginTalker(new WoTConnectionTalker(), WOT_PLUGIN_NAME, CONNECTION_IDENTIFIER);
+		fcpPluginConnection = pr.connectToOtherPlugin(WoTProperties.WOT_PLUGIN_NAME, new FCPMessageHandler());
 	}
 
 	@Override
@@ -58,9 +58,6 @@ class WoTConnectionImpl implements WoTConnection {
 						new SimpleFieldSetFactory().put("Message", "GetOwnIdentities").create(),
 						null),
 				"OwnIdentities");
-		if(response == null) {
-			return null;
-		}
 		if(!"OwnIdentities".equals(response.sfs.get("Message"))) {
 			return null;
 		}
@@ -116,12 +113,9 @@ class WoTConnectionImpl implements WoTConnection {
 		 * support recipients without the Freemail context.
 		 * FIXME: Restrict this to Freemail context a few months after 0.2.1 has become mandatory
 		 */
-		sfs.putOverwrite("Context", "Freemail");
+		sfs.putOverwrite("Context", WoTProperties.CONTEXT);
 
 		Message response = sendBlocking(new Message(sfs, null), "Identities");
-		if(response == null) {
-			return null;
-		}
 		if(!"Identities".equals(response.sfs.get("Message"))) {
 			return null;
 		}
@@ -160,9 +154,6 @@ class WoTConnectionImpl implements WoTConnection {
 		sfs.putOverwrite("Truster", trusterId);
 
 		Message response = sendBlocking(new Message(sfs, null), "Identity");
-		if(response == null) {
-			return null;
-		}
 		if(!"Identity".equals(response.sfs.get("Message"))) {
 			return null;
 		}
@@ -194,9 +185,6 @@ class WoTConnectionImpl implements WoTConnection {
 		sfs.putOverwrite("Value", value);
 
 		Message response = sendBlocking(new Message(sfs, null), "PropertyAdded");
-		if(response == null) {
-			return false;
-		}
 		return "PropertyAdded".equals(response.sfs.get("Message"));
 	}
 
@@ -222,9 +210,6 @@ class WoTConnectionImpl implements WoTConnection {
 		expectedTypes.add("Error");
 
 		Message response = sendBlocking(new Message(sfs, null), expectedTypes);
-		if(response == null) {
-			return null;
-		}
 
 		if("PropertyValue".equals(response.sfs.get("Message"))) {
 			return response.sfs.get("Property");
@@ -248,9 +233,6 @@ class WoTConnectionImpl implements WoTConnection {
 		sfs.putOverwrite("Context", context);
 
 		Message response = sendBlocking(new Message(sfs, null), "ContextAdded");
-		if(response == null) {
-			return false;
-		}
 		return "ContextAdded".equals(response.sfs.get("Message"));
 	}
 
@@ -261,7 +243,6 @@ class WoTConnectionImpl implements WoTConnection {
 	private Message sendBlocking(final Message msg, Set<String> expectedMessageTypes) {
 		assert (msg != null);
 
-		//Synchronize on this so only one message can be sent at a time
 		//Log the contents of the message before sending (debug because of private keys etc)
 		Iterator<String> msgContentIterator = msg.sfs.keyIterator();
 		while(msgContentIterator.hasNext()) {
@@ -269,53 +250,55 @@ class WoTConnectionImpl implements WoTConnection {
 			Logger.debug(this, key + "=" + msg.sfs.get(key));
 		}
 
-		//Synchronize on pluginTalker so only one message can be sent at a time
-		final Message retValue;
+		//Synchronize on replyLock so only one message can be sent at a time
+		final FCPPluginMessage retValue;
 		Timer requestTimer;
-		synchronized(this) {
-			synchronized(replyLock) {
-				requestTimer = Timer.start();
+		synchronized(replyLock) {
+			requestTimer = Timer.start();
 
-				assert (reply == null) : "Reply was " + reply;
-				reply = null;
+			assert (reply == null) : "Reply was " + reply;
+			reply = null;
 
-				pluginTalker.send(msg.sfs, msg.data);
-
-				while(reply == null) {
-					try {
-						replyLock.wait();
-					} catch (InterruptedException e) {
-						//Just check again
-					}
-				}
-
-				retValue = reply;
-				reply = null;
-
+			try {
+				fcpPluginConnection.send(FCPPluginMessage.construct(msg.sfs, msg.data));
+			} catch (IOException e) {
+				Logger.error(this, e.getLocalizedMessage());
+				throw new RuntimeException(e);
 			}
+
+			while(reply == null) {
+				try {
+					replyLock.wait();
+				} catch (InterruptedException e) {
+					//Just check again
+				}
+			}
+
+			retValue = reply;
+			reply = null;
 		}
 		requestTimer.log(this, "Time spent waiting for WoT request " + msg.sfs.get("Message") + " (reply was "
-				+ retValue.sfs.get("Message") + ")");
+				+ retValue.params.get("Message") + ")");
 
-		String replyType = retValue.sfs.get("Message");
+		String replyType = retValue.params.get("Message");
 		for(String expectedMessageType : expectedMessageTypes) {
 			if(expectedMessageType.equals(replyType)) {
-				return retValue;
+				return new Message(retValue);
 			}
 		}
 
 		Logger.error(this, "Got the wrong message from WoT. Original message was "
-				+ retValue.sfs.get("OriginalMessage") + ", response was "
+				+ retValue.params.get("OriginalMessage") + ", response was "
 				+ replyType);
 
 		//Log the contents of the message, but at debug since it might contain private keys etc.
-		Iterator<String> keyIterator = retValue.sfs.keyIterator();
+		Iterator<String> keyIterator = retValue.params.keyIterator();
 		while(keyIterator.hasNext()) {
 			String key = keyIterator.next();
-			Logger.debug(this, key + "=" + retValue.sfs.get(key));
+			Logger.debug(this, key + "=" + retValue.params.get(key));
 		}
 
-		return retValue;
+		return new Message(retValue);
 	}
 
 	private static class Message {
@@ -327,21 +310,27 @@ class WoTConnectionImpl implements WoTConnection {
 			this.data = data;
 		}
 
+		private Message(FCPPluginMessage fcpPluginMessage) {
+			sfs = fcpPluginMessage.params;
+			data = fcpPluginMessage.data;
+		}
+
 		@Override
 		public String toString() {
 			return "[" + sfs + "] [" + data + "]";
 		}
 	}
 
-	private class WoTConnectionTalker implements FredPluginTalker {
+	private class FCPMessageHandler implements FredPluginFCPMessageHandler.ClientSideFCPMessageHandler {
 		@Override
-		public void onReply(String pluginname, String indentifier, SimpleFieldSet params, Bucket data) {
+		public FCPPluginMessage handlePluginFCPMessage(FCPPluginConnection connection, FCPPluginMessage message) {
 			synchronized(replyLock) {
 				assert reply == null : "Reply should be null, but was " + reply;
 
-				reply = new Message(params, data);
+				reply = message;
 				replyLock.notify();
 			}
+			return message;
 		}
 	}
 
@@ -351,7 +340,7 @@ class WoTConnectionImpl implements WoTConnection {
 		UNTRUSTED("-");
 
 		private final String value;
-		private TrustSelection(String value) {
+		TrustSelection(String value) {
 			this.value = value;
 		}
 	}
