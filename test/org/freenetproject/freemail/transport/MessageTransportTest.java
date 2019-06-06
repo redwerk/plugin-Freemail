@@ -25,14 +25,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.freenetproject.freemail.Freemail;
+import org.freenetproject.freemail.utils.EmailAddress;
 import org.freenetproject.freemail.utils.PropsFile;
 import org.freenetproject.freemail.wot.Identity;
 import org.junit.After;
@@ -147,10 +145,8 @@ public class MessageTransportTest {
 		MessageHandler handler = new MessageHandler(outboxDir, freemail, channelDir, account, hlFcpClientFactory);
 
 		//Now send the actual message
-		List<Identity> recipients = new ArrayList<Identity>(1);
-		for(int i = 0; i < 1; i++) {
-			recipients.add(new MockIdentity(TestId1Data.Identity.ID, TestId1Data.Identity.REQUEST_URI, TestId1Data.Identity.NICKNAME));
-		}
+		Set<EmailAddress> recipients = new HashSet<EmailAddress>(1);
+		recipients.add(new EmailAddress(TestId1Data.FreemailAccount.ADDRESS));
 		final String msg =
 				  "Subject: Test message\r\n"
 				+ "\r\n"

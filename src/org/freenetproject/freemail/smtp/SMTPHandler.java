@@ -49,6 +49,7 @@ import org.freenetproject.freemail.Freemail;
 import org.freenetproject.freemail.FreemailAccount;
 import org.freenetproject.freemail.ServerHandler;
 import org.freenetproject.freemail.transport.MessageHandler;
+import org.freenetproject.freemail.utils.EmailAddress;
 import org.freenetproject.freemail.utils.Logger;
 import org.freenetproject.freemail.wot.Identity;
 import org.freenetproject.freemail.wot.IdentityMatcher;
@@ -371,7 +372,10 @@ public class SMTPHandler extends ServerHandler implements Runnable {
 			MessageHandler messageSender = account.getMessageHandler();
 			Bucket data = new FileBucket(tempfile, false, false, false, true);
 			try {
-				if(messageSender.sendMessage(to, data)) {
+				Set<EmailAddress> emails = new HashSet<EmailAddress>(to.size());
+				for (Identity identity : to)
+					emails.add(new EmailAddress(identity.getNickname() + "@" + identity.getBase32IdentityID() + ".freemail"));
+				if(messageSender.sendMessage(emails, data)) {
 					this.ps.print("250 So be it\r\n");
 				} else {
 					this.ps.print("452 Message sending failed\r\n");

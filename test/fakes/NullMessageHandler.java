@@ -22,13 +22,14 @@ package fakes;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.freenetproject.freemail.Freemail;
 import org.freenetproject.freemail.FreemailAccount;
 import org.freenetproject.freemail.fcp.HighLevelFCPClientFactory;
 import org.freenetproject.freemail.transport.MessageHandler;
+import org.freenetproject.freemail.utils.EmailAddress;
 import org.freenetproject.freemail.utils.PropsFile;
-import org.freenetproject.freemail.wot.Identity;
 
 import freenet.support.api.Bucket;
 
@@ -44,7 +45,7 @@ public abstract class NullMessageHandler extends MessageHandler {
 	}
 
 	@Override
-	public boolean sendMessage(List<Identity> recipients, Bucket message) throws IOException {
+	public boolean sendMessage(Set<EmailAddress> recipients, Bucket message) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 

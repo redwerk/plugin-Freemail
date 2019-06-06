@@ -40,6 +40,7 @@ import org.freenetproject.freemail.AccountManager;
 import org.freenetproject.freemail.FreemailAccount;
 import org.freenetproject.freemail.NullFreemailAccount;
 import org.freenetproject.freemail.transport.MessageHandler;
+import org.freenetproject.freemail.utils.EmailAddress;
 import org.freenetproject.freemail.wot.Identity;
 import org.freenetproject.freemail.wot.IdentityMatcher;
 import org.junit.After;
@@ -282,9 +283,9 @@ public class SMTPSessionTest {
 			private int offset = 0;
 
 			@Override
-			public boolean sendMessage(List<Identity> recipients, Bucket msg) throws IOException {
+			public boolean sendMessage(Set<EmailAddress> recipients, Bucket msg) throws IOException {
 				assertEquals(1, recipients.size());
-				assertEquals(recipient, recipients.get(0));
+				assertEquals(recipient, new Identity(recipients.iterator().next().getIdentity(), null, null));
 				assertEquals(messages.get(offset++), new String(BucketTools.toByteArray(msg), "ASCII"));
 
 				return sendResult;

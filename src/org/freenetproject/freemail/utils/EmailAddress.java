@@ -37,7 +37,7 @@ public class EmailAddress {
 	public String user;
 	public String domain;
 
-	public EmailAddress(String address) {
+	public EmailAddress(String address) { // TODO: Check for newlines etc.
 		if(address.matches(".*[^\\u0000-\\u007F]+.*")) {
 			Logger.error(this, "Address contains 8bit character");
 		}
@@ -103,9 +103,7 @@ public class EmailAddress {
 	}
 
 	public boolean isFreemailAddress() {
-		if(this.domain == null) return false;
-		if(!this.domain.endsWith(".freemail")) return false;
-		return true;
+		return domain != null && domain.endsWith(".freemail");
 	}
 
 	public String getIdentity() {

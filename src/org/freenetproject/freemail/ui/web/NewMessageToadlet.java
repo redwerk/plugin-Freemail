@@ -29,17 +29,7 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TimeZone;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import org.freenetproject.freemail.Freemail;
@@ -52,7 +42,6 @@ import org.freenetproject.freemail.utils.EmailAddress;
 import org.freenetproject.freemail.utils.Logger;
 import org.freenetproject.freemail.utils.Timer;
 import org.freenetproject.freemail.wot.Identity;
-import org.freenetproject.freemail.wot.IdentityMatcher;
 import org.freenetproject.freemail.wot.WoTConnection;
 
 import freenet.clients.http.PageNode;
@@ -202,78 +191,29 @@ public class NewMessageToadlet extends WebPage {
 	}
 
 	private HTTPResponse sendMessage(HTTPRequest req, ToadletContext ctx, PageNode page) throws IOException {
-		//FIXME: Consider how to handle duplicate recipients
 		Timer sendMessageTimer = Timer.start();
 
 		Timer recipientHandling = sendMessageTimer.startSubTimer();
-		Map<String, String> recipients = new HashMap<String, String>();
+		Set<EmailAddress> recipients = new HashSet<EmailAddress>(); // FIXME: Consider how to handle duplicate recipients
+		Set<String> failedRecipients = new HashSet<String>();
 		for(int i = 0; req.isPartSet("to" + i); i++) {
 			String recipient = getBucketAsString(req.getPart("to" + i));
-			if(recipient.equals("")) {
-				//Skip empty fields
-				continue;
-			}
+			if(recipient == null || recipient.isEmpty())
+				continue; //Skip empty fields
 
-			//Split the address into parts
-			String name = "";
-			String address = recipient;
-			if(recipient.contains("<") && recipient.contains(">")) {
-				name = recipient.substring(0, recipient.indexOf("<"));
-				name = name.trim();
+			try {
+				EmailAddress email = new EmailAddress(recipient);
 
-				address = recipient.substring(recipient.indexOf("<") + 1, recipient.indexOf(">"));
-				address = address.trim();
+				if (email.isFreemailAddress())
+					recipients.add(email);
+				else
+					failedRecipients.add(recipient);
 			}
-			String localPart = address.split("@", 2)[0];
-			String domainPart = address.split("@", 2)[1];
-
-			//Handle non-ascii characters
-			name = MailMessage.encodeHeader(name);
-			if(localPart.matches(".*[^\\u0000-\\u007F]+.*")) {
-				//Allow this due to earlier bugs, but drop the non-ascii
-				//characters. We can do this since we don't care about the
-				//local part anyway
-				localPart = EmailAddress.cleanLocalPart(localPart);
-				if(localPart.equals("")) {
-					localPart = "mail";
-				}
+			catch (IllegalArgumentException e) {
+				failedRecipients.add(recipient);
 			}
-			//If the domain part has non-ascii characters we won't find any
-			//matches, so handle it that way
-
-			String checkedAddress = localPart + "@" + domainPart;
-			String checkedRecipient;
-			if(name.equals("")) {
-				checkedRecipient = checkedAddress;
-			} else {
-				checkedRecipient = name + " <" + checkedAddress + ">";
-			}
-			recipients.put(checkedAddress, checkedRecipient);
 		}
 		recipientHandling.log(this, "Time spent handling " + recipients.size() + " recipients");
-
-		Timer identityMatching = sendMessageTimer.startSubTimer();
-		IdentityMatcher messageSender = new IdentityMatcher(wotConnection);
-		Map<String, List<Identity>> matches;
-		try {
-			EnumSet<IdentityMatcher.MatchMethod> methods = EnumSet.allOf(IdentityMatcher.MatchMethod.class);
-			matches = messageSender.matchIdentities(recipients.keySet(), loginManager.getSession(ctx).getUserID(), methods);
-		} catch(PluginNotFoundException e) {
-			addWoTNotLoadedMessage(page.content);
-			sendMessageTimer.log(this, 1, TimeUnit.SECONDS, "Time spent sending message (WoT not loaded)");
-			return new GenericHTMLResponse(ctx, 200, "OK", page.outer.generate());
-		}
-		identityMatching.log(this, "Time spent matching identities");
-
-		//Check if there were any unknown or ambiguous identities
-		List<String> failedRecipients = new LinkedList<String>();
-		List<Identity> knownRecipients = new LinkedList<Identity>();
-		for(Map.Entry<String, List<Identity>> entry : matches.entrySet()) {
-			if(entry.getValue().size() == 1)
-				knownRecipients.add(entry.getValue().get(0));
-			else
-				failedRecipients.add(entry.getKey());
-		}
 
 		HTMLNode pageNode = page.outer;
 		HTMLNode contentNode = page.content;
@@ -293,7 +233,7 @@ public class NewMessageToadlet extends WebPage {
 			sendMessageTimer.log(this, 1, TimeUnit.SECONDS,
 				 "Time spent sending message (with failed recipient)");
 
-			if (knownRecipients.isEmpty())
+			if (recipients.isEmpty())
 				return new GenericHTMLResponse(ctx, 200, "OK", pageNode.generate());
 		}
 
@@ -303,11 +243,8 @@ public class NewMessageToadlet extends WebPage {
 		sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 		FreemailAccount account = freemail.getAccountManager().getAccount(loginManager.getSession(ctx).getUserID());
 
-		//TODO: Check for newlines etc.
-		for(String recipient : recipients.values()) {
-			//Use the values so we get what the user typed
-			header.append("To: " + recipient + "\r\n");
-		}
+		for(EmailAddress recipient : recipients)
+			header.append("To: ").append(recipient).append("\r\n");
 
 		String local = EmailAddress.cleanLocalPart(account.getNickname());
 		if(local.length() == 0) {
@@ -345,7 +282,7 @@ public class NewMessageToadlet extends WebPage {
 
 		copyMessageToSentFolder(message, account.getMessageBank());
 
-		account.getMessageHandler().sendMessage(knownRecipients, message);
+		account.getMessageHandler().sendMessage(recipients, message);
 		message.free();
 
 		HTMLNode infobox = addInfobox(contentNode, FreemailL10n.getString("Freemail.NewMessageToadlet.messageQueuedTitle"));

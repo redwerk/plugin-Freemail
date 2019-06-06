@@ -29,10 +29,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -52,7 +49,6 @@ import org.freenetproject.freemail.utils.EmailAddress;
 import org.freenetproject.freemail.utils.Logger;
 import org.freenetproject.freemail.utils.PropsFile;
 import org.freenetproject.freemail.utils.Timer;
-import org.freenetproject.freemail.wot.Identity;
 
 import freenet.support.Base64;
 import freenet.support.IllegalBase64Exception;
@@ -198,7 +194,7 @@ public class MessageHandler {
 		}
 	}
 
-	public boolean sendMessage(List<Identity> recipients, Bucket message) throws IOException {
+	public boolean sendMessage(Set<EmailAddress> recipients, Bucket message) throws IOException {
 		if(!outbox.exists()) {
 			if(!outbox.mkdir()) {
 				Logger.error(this, "Couldn't create outbox directory: " + outbox);
@@ -206,8 +202,8 @@ public class MessageHandler {
 			}
 		}
 
-		for(Identity recipient : recipients) {
-			File rcptOutbox = new File(outbox, recipient.getBase32IdentityID());
+		for(EmailAddress recipient : recipients) {
+			File rcptOutbox = new File(outbox, recipient.getSubDomain());
 			if(!rcptOutbox.exists()) {
 				if(!rcptOutbox.mkdir()) {
 					Logger.error(this, "Couldn't create recipient outbox directory: " + rcptOutbox);
@@ -252,7 +248,7 @@ public class MessageHandler {
 
 			PropsFile props = PropsFile.createPropsFile(new File(rcptOutbox, INDEX_NAME));
 			synchronized(props) {
-				props.put(identifier + IndexKeys.RECIPIENT, recipient.getIdentityID());
+				props.put(identifier + IndexKeys.RECIPIENT, recipient.getIdentity());
 				props.put(identifier + IndexKeys.MSG_NUM, Long.toString(msgNum));
 			}
 
