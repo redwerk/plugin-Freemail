@@ -97,6 +97,41 @@ class WoTConnectionImpl implements WoTConnection {
 		return getAllIdentities(trusterId, TrustSelection.UNTRUSTED);
 	}
 
+	@Override
+	public String addIdentity(String nickname, String identityId, String trusterId) {
+		if(identityId == null)
+			throw new NullPointerException("Parameter identityId must not be null");
+		if(trusterId == null)
+			throw new NullPointerException("Parameter trusterId must not be null");
+
+		SimpleFieldSet sfs = new SimpleFieldSetFactory().create();
+		sfs.putOverwrite("Message", "AddIdentity");
+		sfs.putOverwrite("RequestURI", "USK@" + identityId);
+		if (nickname != null)
+			sfs.putOverwrite("Nickname", nickname);
+		sfs.putOverwrite("Context", "Freemail");
+		Message response = sendBlocking(new Message(sfs, null), "IdentityAdded");
+		if(response == null)
+			throw new NullPointerException("AddIdentity response is null");
+		if(!"IdentityAdded".equals(response.sfs.get("Message")))
+			throw new RuntimeException("Wrong AddIdentity response: " + response.sfs);
+		assert identityId.equalsIgnoreCase(response.sfs.get("ID"));
+
+		sfs = new SimpleFieldSetFactory().create();
+		sfs.putOverwrite("Message", "TrustSet");
+		sfs.putOverwrite("Truster", trusterId);
+		sfs.putOverwrite("Trustee", identityId);
+		sfs.putOverwrite("Value", "0");
+		sfs.putOverwrite("Comment", "Automatically assigned trust to email recipient.");
+		response = sendBlocking(new Message(sfs, null), "TrustSet");
+		if(response == null)
+			throw new NullPointerException("TrustSet response is null");
+		if(!"TrustSet".equals(response.sfs.get("Message")))
+			throw new RuntimeException("Wrong TrustSet response: " + response.sfs);
+
+		return identityId;
+	}
+
 	private Set<Identity> getAllIdentities(String trusterId, TrustSelection selection) {
 		if(trusterId == null) {
 			throw new NullPointerException("Parameter trusterId must not be null");

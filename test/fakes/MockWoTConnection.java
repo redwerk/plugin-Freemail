@@ -22,7 +22,9 @@ package fakes;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
+import freenet.support.Base64;
 import org.freenetproject.freemail.utils.Logger;
 import org.freenetproject.freemail.wot.Identity;
 import org.freenetproject.freemail.wot.OwnIdentity;
@@ -78,6 +80,14 @@ public class MockWoTConnection implements WoTConnection {
 	@Override
 	public Set<Identity> getAllUntrustedIdentities(String trusterId) throws PluginNotFoundException {
 		return untrustedIdentities;
+	}
+
+	@Override
+	public String addIdentity(String nickname, String requestURI, String trusterId) throws PluginNotFoundException {
+		String identityId = Base64.encodeUTF8(UUID.randomUUID().toString());
+//		Identity identity = new Identity(identityId, requestURI, nickname);
+//		trustedIdentities.add(identity);
+		return identityId;
 	}
 
 	@Override

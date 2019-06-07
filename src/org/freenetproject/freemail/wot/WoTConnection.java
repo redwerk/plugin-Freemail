@@ -55,6 +55,13 @@ public interface WoTConnection {
 	public Set<Identity> getAllUntrustedIdentities(String trusterId) throws PluginNotFoundException;
 
 	/**
+	 * @return the Identity ID
+	 * @throws NullPointerException if requestURI or trusterId is {@code null}
+	 * @throws PluginNotFoundException If the WoT plugin isn't loaded
+	 */
+	String addIdentity(String nickname, String identityId, String trusterId) throws PluginNotFoundException;
+
+	/**
 	 * Returns the Identity with the given identity string. The truster parameter is used to fetch
 	 * the trust and score of the identity and must be a valid OwnIdentity.
 	 * @param identity the id of the Identity that should be fetched

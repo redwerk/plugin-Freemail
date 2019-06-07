@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 import freenet.pluginmanager.PluginNotFoundException;
+import org.freenetproject.freemail.utils.EmailAddress;
 
 public class IdentityMatcher {
 	private final WoTConnection wotConnection;
@@ -61,6 +62,17 @@ public class IdentityMatcher {
 			for(String recipient : recipients) {
 				if(matchIdentity(recipient, wotIdentity, methods)) {
 					allMatches.get(recipient).add(wotIdentity);
+				}
+			}
+		}
+
+		for (Map.Entry<String, List<Identity>> recipientEntry : allMatches.entrySet()) {
+			if (recipientEntry.getValue().isEmpty()) {
+				EmailAddress recipientEmail = new EmailAddress(recipientEntry.getKey());
+				if (recipientEmail.isFreemailAddress()) {
+					String identityId =
+							wotConnection.addIdentity(recipientEmail.user, recipientEmail.getIdentity(), wotOwnIdentity);
+					recipientEntry.getValue().add(wotConnection.getIdentity(identityId, wotOwnIdentity));
 				}
 			}
 		}
