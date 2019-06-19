@@ -29,23 +29,10 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TimeZone;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import org.freenetproject.freemail.Freemail;
-import org.freenetproject.freemail.FreemailAccount;
-import org.freenetproject.freemail.MailMessage;
-import org.freenetproject.freemail.MessageBank;
+import org.freenetproject.freemail.*;
 import org.freenetproject.freemail.l10n.FreemailL10n;
 import org.freenetproject.freemail.support.MessageBankTools;
 import org.freenetproject.freemail.utils.EmailAddress;
@@ -69,6 +56,7 @@ import freenet.support.io.Closer;
 public class NewMessageToadlet extends WebPage {
 	private static final String PATH = WebInterface.PATH + "/NewMessage";
 	private static final String SEND_COPY_FOLDER = "Sent";
+	private static final String SEND_PENDING_FOLDER = "Pending";
 
 	private final WoTConnection wotConnection;
 	private final Freemail freemail;
@@ -201,6 +189,25 @@ public class NewMessageToadlet extends WebPage {
 		return true;
 	}
 
+	private void copyMessageToPendingFolder(Bucket message, List<String> pendingRecipients, MessageBank parentMb) throws IOException {
+		MessageBank target = parentMb.makeSubFolder(SEND_COPY_FOLDER);
+		if(target == null)
+			target = parentMb.getSubFolder(SEND_COPY_FOLDER);
+
+		if(target == null) //If target still is null it couldn't be created
+			throw new IOException("PendingFolder MessageBank couldn't be created");
+
+		MailPendingMessage msg = target.createPendingMessage();
+		msg.setPendingRecipients(pendingRecipients);
+
+		try (PrintStream ps = msg.getRawStream()) {
+			BucketTools.copyTo(message, ps, message.size());
+		}
+
+		msg.flags.setSeen();
+		msg.commit();
+	}
+
 	private HTTPResponse sendMessage(HTTPRequest req, ToadletContext ctx, PageNode page) throws IOException {
 		//FIXME: Consider how to handle duplicate recipients
 		Timer sendMessageTimer = Timer.start();
@@ -279,7 +286,6 @@ public class NewMessageToadlet extends WebPage {
 		HTMLNode contentNode = page.content;
 
 		if(!failedRecipients.isEmpty()) {
-			// TODO: Handle this properly
 			HTMLNode errorBox = addErrorbox(contentNode,
 				 FreemailL10n.getString("Freemail.NewMessageToadlet.ambigiousIdentitiesTitle"));
 			HTMLNode errorPara = errorBox.addChild("p",
@@ -292,9 +298,6 @@ public class NewMessageToadlet extends WebPage {
 
 			sendMessageTimer.log(this, 1, TimeUnit.SECONDS,
 				 "Time spent sending message (with failed recipient)");
-
-			if (knownRecipients.isEmpty())
-				return new GenericHTMLResponse(ctx, 200, "OK", pageNode.generate());
 		}
 
 		//Build message header
@@ -342,6 +345,12 @@ public class NewMessageToadlet extends WebPage {
 		BucketTools.copyTo(messageHeader, messageOutputStream, -1);
 		BucketTools.copyTo(messageText, new MailMessage.EncodingOutputStream(messageOutputStream), -1);
 		messageOutputStream.close();
+
+		if (!failedRecipients.isEmpty())
+			copyMessageToPendingFolder(message, failedRecipients, account.getMessageBank());
+
+		if (knownRecipients.isEmpty())
+			return new GenericHTMLResponse(ctx, 200, "OK", pageNode.generate());
 
 		copyMessageToSentFolder(message, account.getMessageBank());
 

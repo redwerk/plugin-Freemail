@@ -30,12 +30,7 @@ import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.TreeMap;
-import java.util.SortedMap;
-import java.util.Vector;
-import java.util.Enumeration;
-import java.util.Comparator;
-import java.util.Arrays;
+import java.util.*;
 
 import org.freenetproject.freemail.utils.Logger;
 import org.freenetproject.freemail.utils.PropsFile;
@@ -148,6 +143,26 @@ public class MessageBank {
 		return null;
 	}
 
+	public synchronized MailPendingMessage createPendingMessage() {
+		long newId = this.nextId();
+		File newfile;
+		try {
+			do {
+				newfile = new File(this.dir, Long.toString(newId));
+				newId++;
+			} while(!newfile.createNewFile());
+		} catch (IOException ioe) {
+			newfile = null;
+		}
+
+		this.writeNextId(newId);
+
+		if(newfile != null)
+			return new MailPendingMessage(newfile, 0);
+
+		return null;
+	}
+
 	public synchronized SortedMap<Integer, MailMessage> listMessages() {
 		File[] files = this.dir.listFiles(new MessageFileNameFilter());
 
@@ -162,6 +177,22 @@ public class MessageBank {
 			MailMessage msg = new MailMessage(files[i], seq++);
 
 			msgs.put(new Integer(msg.getUID()), msg);
+		}
+
+		return msgs;
+	}
+
+	public synchronized List<MailPendingMessage> listPendingMessages() {
+		File[] files = this.dir.listFiles(new MessageFileNameFilter());
+
+		assert files != null;
+
+		List<MailPendingMessage> msgs = new ArrayList<>();
+
+		int seq=1;
+		for (File file : files) {
+			if (file.isDirectory()) continue;
+			msgs.add(new MailPendingMessage(file, seq++));
 		}
 
 		return msgs;

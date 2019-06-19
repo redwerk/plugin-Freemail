@@ -85,6 +85,8 @@ public class SingleAccountWatcher implements Runnable {
 				insertMailsite(wotConnection);
 				setWoTContext(wotConnection);
 
+				// TODO: looks like main loop
+
 				if(stopping) {
 					break;
 				}
