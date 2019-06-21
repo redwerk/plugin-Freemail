@@ -56,7 +56,6 @@ import freenet.support.io.Closer;
 public class NewMessageToadlet extends WebPage {
 	private static final String PATH = WebInterface.PATH + "/NewMessage";
 	private static final String SEND_COPY_FOLDER = "Sent";
-	private static final String SEND_PENDING_FOLDER = "Pending";
 
 	private final WoTConnection wotConnection;
 	private final Freemail freemail;
@@ -190,9 +189,9 @@ public class NewMessageToadlet extends WebPage {
 	}
 
 	private void copyMessageToPendingFolder(Bucket message, List<String> pendingRecipients, MessageBank parentMb) throws IOException {
-		MessageBank target = parentMb.makeSubFolder(SEND_COPY_FOLDER);
+		MessageBank target = parentMb.makeSubFolder(MailPendingMessage.SEND_PENDING_FOLDER);
 		if(target == null)
-			target = parentMb.getSubFolder(SEND_COPY_FOLDER);
+			target = parentMb.getSubFolder(MailPendingMessage.SEND_PENDING_FOLDER);
 
 		if(target == null) //If target still is null it couldn't be created
 			throw new IOException("PendingFolder MessageBank couldn't be created");

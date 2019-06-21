@@ -5,6 +5,8 @@ import java.util.List;
 
 public class MailPendingMessage extends MailMessage {
 
+    public final static String SEND_PENDING_FOLDER = "Pending";
+
     private List<String> pendingRecipients;
 
     public MailPendingMessage(File f, int msg_seqnum) {

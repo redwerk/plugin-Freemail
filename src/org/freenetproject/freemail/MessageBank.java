@@ -106,6 +106,23 @@ public class MessageBank {
 		return retval.toString();
 	}
 
+	public synchronized boolean delete(int uid) {
+		File[] files = dir.listFiles(new MessageFileNameFilter());
+
+		assert files != null;
+
+		for (File file : files) {
+			if (file.isDirectory()) continue;
+
+			MailMessage message = new MailMessage(file, 0);
+
+			if (message.getUID() == uid)
+				return file.delete();
+		}
+
+		return false;
+	}
+
 	public synchronized boolean delete() {
 		File[] files = this.dir.listFiles();
 

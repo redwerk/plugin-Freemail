@@ -83,6 +83,10 @@ public class InboxToadlet extends WebPage {
 		//Add the container for the message list and the buttons
 		String folderName = req.getParam("folder", "inbox");
 		MessageBank messageBank = getMessageBank(account, folderName);
+
+		if (messageBank == null)
+			return new GenericHTMLResponse(ctx, 200, "OK", pageNode.generate());
+
 		HTMLNode messageList = container.addChild("div", "class", "messagelist");
 		messageList = pluginRespirator.addFormChild(messageList, "InboxToadlet", "action");
 		messageList.addChild("input", new String[] {"type",   "name",   "value"},

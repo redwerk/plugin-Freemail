@@ -21,13 +21,23 @@
 
 package org.freenetproject.freemail;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.InterruptedException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import freenet.support.api.Bucket;
+import freenet.support.io.ArrayBucket;
+import freenet.support.io.BucketTools;
 import org.freenetproject.freemail.fcp.ConnectionTerminatedException;
 import org.freenetproject.freemail.utils.Logger;
 import org.freenetproject.freemail.utils.Timer;
+import org.freenetproject.freemail.wot.Identity;
+import org.freenetproject.freemail.wot.IdentityMatcher;
 import org.freenetproject.freemail.wot.WoTConnection;
 import org.freenetproject.freemail.wot.WoTProperties;
 
@@ -42,8 +52,10 @@ public class SingleAccountWatcher implements Runnable {
 	public static final String RTS_DIR = "rts";
 	private static final int MIN_POLL_DURATION = 5 * 60 * 1000; // in milliseconds
 	private static final int MAILSITE_UPLOAD_INTERVAL = 60 * 60 * 1000;
+	private static final int SEND_FREEMAIL_RETRY_INTERVAL = 60 * 60 * 1000;
 	private final RTSFetcher rtsf;
 	private long mailsite_last_upload;
+	private long sendFreemailLastRetry;
 	private final FreemailAccount account;
 	private final Freemail freemail;
 	private final File rtsdir;
@@ -85,7 +97,7 @@ public class SingleAccountWatcher implements Runnable {
 				insertMailsite(wotConnection);
 				setWoTContext(wotConnection);
 
-				// TODO: looks like main loop
+				retrySendFreemail(wotConnection);
 
 				if(stopping) {
 					break;
@@ -181,6 +193,79 @@ public class SingleAccountWatcher implements Runnable {
 			Logger.normal(this, "WoT plugin not loaded, can't set Freemail context");
 		}
 		contextWrite.log(this, 1, TimeUnit.HOURS, "Time spent adding WoT context");
+	}
+
+	private void retrySendFreemail(WoTConnection wotConnection) {
+		if(System.currentTimeMillis() < sendFreemailLastRetry + SEND_FREEMAIL_RETRY_INTERVAL)
+			return;
+
+		MessageBank messageBank = account.getMessageBank().makeSubFolder(MailPendingMessage.SEND_PENDING_FOLDER);
+		if(messageBank == null)
+			return;
+
+
+		IdentityMatcher messageSender = new IdentityMatcher(wotConnection);
+		for (MailPendingMessage pendingMessage : messageBank.listPendingMessages()) {
+			Map<String, List<Identity>> matches;
+			try {
+				matches = messageSender.matchIdentities(
+						new HashSet<>(pendingMessage.getPendingRecipients()),
+						account.getIdentity(),
+						EnumSet.allOf(IdentityMatcher.MatchMethod.class));
+			} catch (PluginNotFoundException e) {
+				Logger.warning(this, "WoT not loaded");
+				return;
+			}
+
+			List<String> failedRecipients = new ArrayList<>();
+			List<String> knownRecipientsKeys = new ArrayList<>();
+			List<Identity> knownRecipients = new ArrayList<>();
+			for(Map.Entry<String, List<Identity>> entry : matches.entrySet()) {
+				if(entry.getValue().size() == 1) {
+					knownRecipientsKeys.add(entry.getKey());
+					knownRecipients.add(entry.getValue().get(0));
+				}
+				else
+					failedRecipients.add(entry.getKey());
+			}
+
+			if (knownRecipients.isEmpty())
+				continue;
+
+			if (failedRecipients.isEmpty())
+				messageBank.delete(pendingMessage.getUID());
+			else {
+				List<String> remainingRecipients = pendingMessage.getPendingRecipients();
+				remainingRecipients.removeAll(knownRecipientsKeys);
+				pendingMessage.setPendingRecipients(remainingRecipients);
+				// save pendingMessage?
+			}
+
+			try (BufferedReader body = pendingMessage.getBodyReader()) {
+				Bucket messageHeader = new ArrayBucket(pendingMessage.getAllHeadersAsString().getBytes(StandardCharsets.UTF_8));
+
+				char[] charArray = new char[8 * 1024];
+				StringBuilder builder = new StringBuilder();
+				int numCharsRead;
+				while ((numCharsRead = body.read(charArray, 0, charArray.length)) != -1)
+					builder.append(charArray, 0, numCharsRead);
+				Bucket messageText = new ArrayBucket(builder.toString().getBytes(StandardCharsets.UTF_8));
+
+				Bucket message = new ArrayBucket();
+				OutputStream messageOutputStream = message.getOutputStream();
+				BucketTools.copyTo(messageHeader, messageOutputStream, -1);
+				BucketTools.copyTo(messageText, new MailMessage.EncodingOutputStream(messageOutputStream), -1);
+				messageOutputStream.close();
+
+				// TODO: if the sent folder does not contain this message
+//				copyMessageToSentFolder(message, account.getMessageBank());
+
+				account.getMessageHandler().sendMessage(knownRecipients, message);
+				message.free();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	/**
