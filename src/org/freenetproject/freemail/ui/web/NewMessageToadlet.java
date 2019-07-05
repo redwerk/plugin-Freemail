@@ -193,7 +193,7 @@ public class NewMessageToadlet extends WebPage {
 		if(target == null)
 			target = parentMb.getSubFolder(MailPendingMessage.SEND_PENDING_FOLDER);
 
-		if(target == null) //If target still is null it couldn't be created
+		if(target == null) // If target still is null it couldn't be created
 			throw new IOException("PendingFolder MessageBank couldn't be created");
 
 		MailPendingMessage msg = target.createPendingMessage();

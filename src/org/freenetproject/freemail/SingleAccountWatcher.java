@@ -196,13 +196,15 @@ public class SingleAccountWatcher implements Runnable {
 	}
 
 	private void retrySendFreemail(WoTConnection wotConnection) {
-		if(System.currentTimeMillis() < sendFreemailLastRetry + SEND_FREEMAIL_RETRY_INTERVAL)
-			return;
+//		if (System.currentTimeMillis() < sendFreemailLastRetry + SEND_FREEMAIL_RETRY_INTERVAL) {
+//			return;
+//		}
+//		sendFreemailLastRetry = System.currentTimeMillis();
 
 		MessageBank messageBank = account.getMessageBank().makeSubFolder(MailPendingMessage.SEND_PENDING_FOLDER);
-		if(messageBank == null)
+		if(messageBank == null) {
 			return;
-
+		}
 
 		IdentityMatcher messageSender = new IdentityMatcher(wotConnection);
 		for (MailPendingMessage pendingMessage : messageBank.listPendingMessages()) {
@@ -224,22 +226,23 @@ public class SingleAccountWatcher implements Runnable {
 				if(entry.getValue().size() == 1) {
 					knownRecipientsKeys.add(entry.getKey());
 					knownRecipients.add(entry.getValue().get(0));
-				}
-				else
+				} else {
 					failedRecipients.add(entry.getKey());
+				}
 			}
 
-			if (knownRecipients.isEmpty())
+			if (knownRecipients.isEmpty()) {
 				continue;
+			}
 
-			if (failedRecipients.isEmpty())
+			if (failedRecipients.isEmpty()) {
 				messageBank.delete(pendingMessage.getUID());
-			else {
+			} else {
 				List<String> remainingRecipients = pendingMessage.getPendingRecipients();
 				remainingRecipients.removeAll(knownRecipientsKeys);
 				pendingMessage.setPendingRecipients(remainingRecipients);
-				// save pendingMessage?
 			}
+//			pendingMessage.commit(); // TODO
 
 			try (BufferedReader body = pendingMessage.getBodyReader()) {
 				Bucket messageHeader = new ArrayBucket(pendingMessage.getAllHeadersAsString().getBytes(StandardCharsets.UTF_8));
@@ -247,8 +250,9 @@ public class SingleAccountWatcher implements Runnable {
 				char[] charArray = new char[8 * 1024];
 				StringBuilder builder = new StringBuilder();
 				int numCharsRead;
-				while ((numCharsRead = body.read(charArray, 0, charArray.length)) != -1)
+				while ((numCharsRead = body.read(charArray, 0, charArray.length)) != -1) {
 					builder.append(charArray, 0, numCharsRead);
+				}
 				Bucket messageText = new ArrayBucket(builder.toString().getBytes(StandardCharsets.UTF_8));
 
 				Bucket message = new ArrayBucket();

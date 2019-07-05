@@ -22,13 +22,12 @@ package org.freenetproject.freemail;
 import static org.junit.Assert.*;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.freenetproject.freemail.FreemailAccount;
-import org.freenetproject.freemail.MessageBank;
 
 import data.TestId1Data;
 
@@ -80,5 +79,24 @@ public class MessageBankTest {
 
 		//This would fail because .subsubfolder couldn't be deleted
 		assertTrue(subFolder.delete());
+	}
+
+	@Test
+	public void pendingMessagesTest() {
+		MessageBank messageBank = rootMessageBank.makeSubFolder(MailPendingMessage.SEND_PENDING_FOLDER);
+
+		List<String> pendingRecipients = Arrays.asList("1", "2", "3");
+		MailPendingMessage pendingMessage = messageBank.createPendingMessage();
+		pendingMessage.setPendingRecipients(pendingRecipients);
+//		pendingMessage.commit();
+
+		List<MailPendingMessage> mailPendingMessages = messageBank.listPendingMessages();
+		pendingMessage = mailPendingMessages.get(0);
+		assertEquals(3, pendingMessage.getPendingRecipients().size());
+		pendingMessage.getPendingRecipients().remove(0);
+
+		mailPendingMessages = messageBank.listPendingMessages();
+		pendingMessage = mailPendingMessages.get(0);
+		assertEquals(2, pendingMessage.getPendingRecipients().size());
 	}
 }
