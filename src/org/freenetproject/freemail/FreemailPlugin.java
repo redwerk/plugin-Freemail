@@ -55,7 +55,7 @@ public class FreemailPlugin extends Freemail implements FredPlugin, FredPluginBa
 	private WebInterface webInterface = null;
 	private volatile PluginRespirator pluginRespirator = null;
 	private WoTConnection wotConnection = null;
-	private Map<CountDownLatch, Thread> activeThreads = new ConcurrentHashMap<>();
+	private final Map<CountDownLatch, Thread> activeThreads = new ConcurrentHashMap<>();
 
 	public FreemailPlugin() throws IOException {
 		super(CFGFILE);
@@ -169,10 +169,6 @@ public class FreemailPlugin extends Freemail implements FredPlugin, FredPluginBa
 		Timer waitingForNormalShutdown = terminateTimer.startSubTimer();
 		long timeout = TimeUnit.MINUTES.toMillis(1);
 		while (!activeThreads.isEmpty()) {
-			if (timeout <= 0) {
-				break;
-			}
-
 			for (Map.Entry<CountDownLatch, Thread> countDownLatchThreadEntry : activeThreads.entrySet()) {
 				if (timeout <= 0) {
 					break;
