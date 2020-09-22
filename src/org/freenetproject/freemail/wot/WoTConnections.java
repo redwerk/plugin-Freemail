@@ -92,13 +92,7 @@ public class WoTConnections implements WoTConnection {
     @Override
     public boolean setProperty(String identity, String key, String value)
             throws PluginNotFoundException, IOException, InterruptedException {
-        WoTConnectionImpl wotConnection;
-        try {
-            wotConnection = borrowWoTConnection();
-        } catch (WoTException e) {
-            Logger.warning(this, "setProperty " + key + " = " + value + " failed", e);
-            return false;
-        }
+        WoTConnectionImpl wotConnection = borrowWoTConnection();
         boolean isSuccessfullySet = wotConnection.setProperty(identity, key, value);
         returnWoTConnection(wotConnection);
         return isSuccessfullySet;
@@ -116,37 +110,24 @@ public class WoTConnections implements WoTConnection {
     @Override
     public boolean setContext(String identity, String context)
             throws PluginNotFoundException, IOException, InterruptedException {
-        WoTConnectionImpl wotConnection;
-        try {
-            wotConnection = borrowWoTConnection();
-        } catch (WoTException e) {
-            Logger.warning(this, "setContext failed: " + identity + " - " + context, e);
-            return false;
-        }
+        WoTConnectionImpl wotConnection = borrowWoTConnection();
         boolean isSuccessfullySet = wotConnection.setContext(identity, context);
         returnWoTConnection(wotConnection);
         return isSuccessfullySet;
     }
 
-    private WoTConnectionImpl borrowWoTConnection()
-            throws PluginNotFoundException, IOException, WoTException, InterruptedException {
+    private WoTConnectionImpl borrowWoTConnection() throws PluginNotFoundException, InterruptedException {
         WoTConnectionImpl wotConnection;
         if ((wotConnection = wotConnectionsPool.poll()) == null) {
-            wotConnection = new WoTConnectionImpl(pluginRespirator);
+            return new WoTConnectionImpl(pluginRespirator);
         } else {
             try {
                 wotConnection.ping();
+                return wotConnection;
             } catch (IOException | WoTException ignored) {
-                if (wotConnectionsPool.size() > 0) {
-                    borrowWoTConnection();
-                } else {
-                    wotConnection = new WoTConnectionImpl(pluginRespirator);
-                    wotConnection.ping();
-                }
+                return borrowWoTConnection();
             }
         }
-
-        return wotConnection;
     }
 
     private void returnWoTConnection(WoTConnectionImpl wotConnection) {
