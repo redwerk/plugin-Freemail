@@ -175,13 +175,13 @@ public class WoTConnections implements WoTConnection {
             final List<OwnIdentity> ownIdentities = new ArrayList<>(identitiesAmount);
             for (int i = 0; i < identitiesAmount; i++) {
                 String identityID = response.params.get("Identity" + i);
-                assert identityID != null;
+                Objects.requireNonNull(identityID);
 
                 String requestURI = response.params.get("RequestURI" + i);
-                assert requestURI != null;
+                Objects.requireNonNull(requestURI);
 
                 String insertURI = response.params.get("InsertURI" + i);
-                assert insertURI != null;
+                Objects.requireNonNull(insertURI);
 
                 String nickname = response.params.get("Nickname" + i);
 
@@ -202,13 +202,13 @@ public class WoTConnections implements WoTConnection {
             final List<Identity> identities = new ArrayList<>(identitiesAmount);
             for (int i = 0; i < identitiesAmount; i++) {
                 String requestURI = response.params.get("Identities." + i + ".RequestURI");
-                assert requestURI != null;
+                Objects.requireNonNull(requestURI);
 
                 String nickname = response.params.get("Identities." + i + ".Nickname");
 
                 if ("OwnIdentity".equals(response.params.get("Identities." + i + ".Type"))) {
                     String insertURI = response.params.get("Identities." + i + ".InsertURI");
-                    assert insertURI != null;
+                    Objects.requireNonNull(insertURI);
 
                     identities.add(new OwnIdentity(toIdentityId(requestURI), requestURI, insertURI, nickname));
                 } else {
@@ -263,12 +263,14 @@ public class WoTConnections implements WoTConnection {
             final List<Trustee> identities = new ArrayList<>(identitiesAmount);
             for (int i = 0; i < identitiesAmount; i++) {
                 String requestURI = response.params.get("RequestURI" + i);
-                assert requestURI != null;
+                Objects.requireNonNull(requestURI);
 
                 String nickname = response.params.get("Nickname" + i);
 
-                Byte trustValue = Byte.parseByte(response.params.get("Value" + i));
-                assert trustValue >= -100 && trustValue <= 100;
+                byte trustValue = Byte.parseByte(response.params.get("Value" + i));
+                if (trustValue < -100 || trustValue > 100) {
+                    throw new WoTException("Out of range trustValue: " + trustValue);
+                }
 
                 String comment = response.params.get("Comment" + i);
 
@@ -301,7 +303,7 @@ public class WoTConnections implements WoTConnection {
             }
 
             String requestURI = response.params.get("Identities.0.RequestURI");
-            assert (requestURI != null);
+            Objects.requireNonNull(requestURI);
 
             String nickname = response.params.get("Identities.0.Nickname");
 
@@ -366,7 +368,7 @@ public class WoTConnections implements WoTConnection {
 
         private FCPPluginMessage sendSynchronous(final FCPPluginMessage message, final String expectedResponseMessageType)
                 throws IOException, InterruptedException {
-            assert message != null;
+            Objects.requireNonNull(message, "Parameter (FCPPluginMessage) message must not be null");
 
             try {
                 FCPPluginMessage response = fcpPluginConnection.sendSynchronous(message, TimeUnit.MINUTES.toNanos(1));
