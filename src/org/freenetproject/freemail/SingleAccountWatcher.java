@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.InterruptedException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.freenetproject.freemail.fcp.ConnectionTerminatedException;
 import org.freenetproject.freemail.utils.Logger;
@@ -124,7 +123,7 @@ public class SingleAccountWatcher implements Runnable {
 					String hint = wotConnection.getProperty(
 							account.getIdentity(), WoTProperties.MAILSITE_EDITION);
 					editionHint = Integer.parseInt(hint);
-				} catch (PluginNotFoundException | NumberFormatException | IOException | TimeoutException | WoTException e) {
+				} catch (PluginNotFoundException | NumberFormatException | IOException | WoTException e) {
 					//Only means that we can't get the hint from WoT so ignore it
 				}
 				propertyRead.log(this, 1, TimeUnit.HOURS, "Time spent getting mailsite property");
@@ -150,7 +149,7 @@ public class SingleAccountWatcher implements Runnable {
 					Timer propertyUpdate = Timer.start();
 					try {
 						wotConnection.setProperty(account.getIdentity(), WoTProperties.MAILSITE_EDITION, "" + edition);
-					} catch(PluginNotFoundException | IOException | TimeoutException e) {
+					} catch(PluginNotFoundException | IOException e) {
 						//In most cases this doesn't matter since the edition doesn't
 						//change very often anyway
 						Logger.normal(this, "WoT plugin not loaded, can't save mailsite edition");
@@ -178,7 +177,7 @@ public class SingleAccountWatcher implements Runnable {
 			}
 		} catch (PluginNotFoundException e) {
 			Logger.normal(this, "WoT plugin not loaded, can't set Freemail context");
-		} catch (TimeoutException | IOException e) {
+		} catch (IOException e) {
 			Logger.normal(this, e.getMessage());
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();

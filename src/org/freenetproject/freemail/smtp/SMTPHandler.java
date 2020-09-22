@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-import java.util.concurrent.TimeoutException;
 
 import freenet.pluginmanager.PluginNotFoundException;
 import freenet.support.api.Bucket;
@@ -324,7 +323,7 @@ public class SMTPHandler extends ServerHandler implements Runnable {
 			this.ps.print("421 Service closing\r\n");
 			Thread.currentThread().interrupt();
 			return;
-		} catch (IOException | TimeoutException | WoTException e) {
+		} catch (IOException | WoTException e) {
 			Logger.debug(this, e.getMessage());
 			this.ps.print("451 " + e.getMessage() + "\r\n");
 			return;

@@ -25,7 +25,6 @@ import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.concurrent.TimeoutException;
 
 import javax.naming.SizeLimitExceededException;
 
@@ -66,7 +65,7 @@ public class AddAccountToadlet extends WebPage {
 		List<OwnIdentity> ownIdentities;
 		try {
 			ownIdentities = wotConnection.getAllOwnIdentities();
-		} catch (PluginNotFoundException | IOException | TimeoutException | WoTException e) {
+		} catch (PluginNotFoundException | IOException | WoTException e) {
 			addWoTExceptionMessage(contentNode, e);
 			return new GenericHTMLResponse(ctx, 200, "OK", pageNode.generate());
 		} catch (InterruptedException e) {
@@ -153,7 +152,7 @@ public class AddAccountToadlet extends WebPage {
 		List<OwnIdentity> ownIdentities;
 		try {
 			ownIdentities = wotConnection.getAllOwnIdentities();
-		} catch (PluginNotFoundException | IOException | TimeoutException | WoTException e) {
+		} catch (PluginNotFoundException | IOException | WoTException e) {
 			addWoTExceptionMessage(page.content, e);
 			return new GenericHTMLResponse(ctx, 200, "OK", page.outer.generate());
 		} catch (InterruptedException e) {

@@ -41,7 +41,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.freenetproject.freemail.Freemail;
 import org.freenetproject.freemail.FreemailAccount;
@@ -93,7 +92,7 @@ public class NewMessageToadlet extends WebPage {
 			Identity identity;
 			try {
 				identity = wotConnection.getIdentity(recipient, loginManager.getSession(ctx).getUserID());
-			} catch (PluginNotFoundException | TimeoutException | IOException | WoTException e) {
+			} catch (PluginNotFoundException | IOException | WoTException e) {
 				addWoTExceptionMessage(contentNode, e);
 				return new GenericHTMLResponse(ctx, 200, "OK", pageNode.generate());
 			} catch (InterruptedException e) {
@@ -264,7 +263,7 @@ public class NewMessageToadlet extends WebPage {
 		try {
 			EnumSet<IdentityMatcher.MatchMethod> methods = EnumSet.allOf(IdentityMatcher.MatchMethod.class);
 			matches = messageSender.matchIdentities(recipients.keySet(), loginManager.getSession(ctx).getUserID(), methods);
-		} catch (PluginNotFoundException | TimeoutException | WoTException e) {
+		} catch (PluginNotFoundException | WoTException e) {
 			addWoTExceptionMessage(page.content, e);
 			sendMessageTimer.log(this, 1, TimeUnit.SECONDS, "Time spent sending message (" + e.getMessage() + ")");
 			return new GenericHTMLResponse(ctx, 200, "OK", page.outer.generate());

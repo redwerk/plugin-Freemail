@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.archive.util.Base32;
 import org.freenetproject.freemail.AccountManager;
@@ -95,7 +94,7 @@ public class OutboxToadlet extends WebPage {
 				} else {
 					recipient = null;
 				}
-			} catch(PluginNotFoundException | TimeoutException | IOException | WoTException e) {
+			} catch(PluginNotFoundException | IOException | WoTException e) {
 				recipient = null;
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();

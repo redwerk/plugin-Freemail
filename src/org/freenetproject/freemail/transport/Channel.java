@@ -36,7 +36,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -910,7 +909,7 @@ class Channel {
 			} catch (PluginNotFoundException e) {
 				Logger.error(this, "WoT plugin isn't loaded, can't send RTS");
 				recipient = null;
-			} catch (IOException | TimeoutException | WoTException e) {
+			} catch (IOException | WoTException e) {
 				Logger.error(this, e.getMessage() + ", can't send RTS");
 				recipient = null;
 			}
@@ -925,7 +924,7 @@ class Channel {
 			String edition;
 			try {
 				edition = wotConnection.getProperty(remoteId, WoTProperties.MAILSITE_EDITION);
-			} catch(PluginNotFoundException | IOException | TimeoutException | WoTException e1) {
+			} catch(PluginNotFoundException | IOException | WoTException e1) {
 				edition = null;
 			}
 			if(edition == null) {
@@ -977,7 +976,7 @@ class Channel {
 			} catch (PluginNotFoundException e) {
 				Logger.error(this, "WoT plugin not loaded, can't send RTS");
 				senderIdentity = null;
-			} catch (IOException | TimeoutException | WoTException e) {
+			} catch (IOException | WoTException e) {
 				Logger.error(this, e.getMessage() + ", can't send RTS");
 				senderIdentity = null;
 			}
@@ -991,7 +990,7 @@ class Channel {
 			String senderEdition;
 			try {
 				senderEdition = wotConnection.getProperty(account.getIdentity(), WoTProperties.MAILSITE_EDITION);
-			} catch(PluginNotFoundException | IOException | TimeoutException | WoTException e1) {
+			} catch(PluginNotFoundException | IOException | WoTException e1) {
 				senderEdition = null;
 			}
 			if(edition == null) {

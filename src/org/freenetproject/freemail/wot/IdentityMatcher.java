@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 
 import freenet.pluginmanager.PluginNotFoundException;
 
@@ -40,7 +39,7 @@ public class IdentityMatcher {
 	}
 
 	public Map<String, List<Identity>> matchIdentities(Set<String> recipients, String wotOwnIdentity, EnumSet<MatchMethod> methods)
-			throws PluginNotFoundException, InterruptedException, TimeoutException, IOException, WoTException {
+			throws PluginNotFoundException, InterruptedException, IOException, WoTException {
 		Map<String, List<Identity>> allMatches = new HashMap<>(recipients.size());
 		for (String recipient : recipients) {
 			allMatches.put(recipient, new LinkedList<Identity>());
