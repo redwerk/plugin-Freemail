@@ -172,7 +172,7 @@ public class WoTConnections implements WoTConnection {
             checkErrorMessage("getAllOwnIdentities", response);
 
             int identitiesAmount = Integer.parseInt(response.params.get("Amount"));
-            final List<OwnIdentity> ownIdentities = new ArrayList<>(identitiesAmount);
+            List<OwnIdentity> ownIdentities = new ArrayList<>(identitiesAmount);
             for (int i = 0; i < identitiesAmount; i++) {
                 String identityID = response.params.get("Identity" + i);
                 Objects.requireNonNull(identityID);
