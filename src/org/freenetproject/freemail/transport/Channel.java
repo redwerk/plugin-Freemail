@@ -924,7 +924,7 @@ class Channel {
 			String edition;
 			try {
 				edition = wotConnection.getProperty(remoteId, WoTProperties.MAILSITE_EDITION);
-			} catch(PluginNotFoundException | IOException | WoTException e1) {
+			} catch (PluginNotFoundException | IOException | WoTException e1) {
 				edition = null;
 			}
 			if(edition == null) {
@@ -990,7 +990,7 @@ class Channel {
 			String senderEdition;
 			try {
 				senderEdition = wotConnection.getProperty(account.getIdentity(), WoTProperties.MAILSITE_EDITION);
-			} catch(PluginNotFoundException | IOException | WoTException e1) {
+			} catch (PluginNotFoundException | IOException | WoTException e1) {
 				senderEdition = null;
 			}
 			if(edition == null) {
