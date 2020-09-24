@@ -46,11 +46,8 @@ public interface WoTConnection {
 	List<Identity> getAllIdentities() throws PluginNotFoundException, IOException, WoTException, InterruptedException;
 
 	/**
-	 * Returns all the identities that are trusted by the given identity, or {@code null} if an
-	 * error occurs. Trusted identities are those with a score of 0 or higher.
-	 * @param trusterId the identity id of the truster
-	 * @return all the identities that are trusted by the given identity
-	 * @throws NullPointerException if trusterId is {@code null}
+	 * Returns all the identities or {@code null} if an error occurs.
+	 * @return all the identities
 	 * @throws PluginNotFoundException If the WoT plugin isn't loaded
 	 */
 	Set<Identity> getAllTrustedIdentities(String trusterId) throws PluginNotFoundException, IOException, WoTException, InterruptedException;
