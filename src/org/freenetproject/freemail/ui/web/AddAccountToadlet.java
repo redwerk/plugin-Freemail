@@ -82,7 +82,7 @@ public class AddAccountToadlet extends WebPage {
 			return new GenericHTMLResponse(ctx, 200, "OK", pageNode.generate());
 		}
 
-		List<OwnIdentity> identitiesWithoutAccount = new LinkedList<OwnIdentity>();
+		List<OwnIdentity> identitiesWithoutAccount = new LinkedList<>();
 		for(OwnIdentity oid : ownIdentities) {
 			if(accountManager.getAccount(oid.getIdentityID()) == null) {
 				identitiesWithoutAccount.add(oid);
@@ -177,7 +177,7 @@ public class AddAccountToadlet extends WebPage {
 			return new GenericHTMLResponse(ctx, 200, "OK", "The specified identitiy doesn't exist");
 		}
 
-		List<OwnIdentity> toAdd = new LinkedList<OwnIdentity>();
+		List<OwnIdentity> toAdd = new LinkedList<>();
 		toAdd.add(ownIdentity);
 		accountManager.addIdentities(toAdd);
 		FreemailAccount account = accountManager.getAccount(ownIdentity.getIdentityID());

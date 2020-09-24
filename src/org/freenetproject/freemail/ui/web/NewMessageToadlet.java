@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -86,7 +87,7 @@ public class NewMessageToadlet extends WebPage {
 		HTMLNode pageNode = page.outer;
 		HTMLNode contentNode = page.content;
 
-		List<String> recipients = new LinkedList<String>();
+		List<String> recipients = new LinkedList<>();
 		String recipient = req.getParam("to");
 		if(!recipient.equals("")) {
 			Identity identity;
@@ -106,7 +107,7 @@ public class NewMessageToadlet extends WebPage {
 		}
 
 		HTMLNode messageBox = addInfobox(contentNode, FreemailL10n.getString("Freemail.NewMessageToadlet.boxTitle"));
-		addMessageForm(messageBox, ctx, recipients, "", bucketFromString(""), Collections.<String>emptyList());
+		addMessageForm(messageBox, ctx, recipients, "", bucketFromString(""), Collections.emptyList());
 
 		return new GenericHTMLResponse(ctx, 200, "OK", pageNode.generate());
 	}
@@ -121,7 +122,7 @@ public class NewMessageToadlet extends WebPage {
 			return createReply(req, ctx, page);
 		}
 
-		List<String> recipients = new LinkedList<String>();
+		List<String> recipients = new LinkedList<>();
 		for(int i = 0; req.isPartSet("to" + i); i++) {
 			recipients.add(getBucketAsString(req.getPart("to" + i)));
 		}
@@ -162,9 +163,9 @@ public class NewMessageToadlet extends WebPage {
 			}
 		}
 
-		String parts = "";
+		StringBuilder parts = new StringBuilder();
 		for(String part : req.getParts()) {
-			parts += part + "=\"" + getBucketAsString(req.getPart(part)) + "\" ";
+			parts.append(part).append("=\"").append(getBucketAsString(req.getPart(part))).append("\" ");
 		}
 		Logger.error(this, "Unknown action requested. Set parts: " + parts);
 
@@ -211,7 +212,7 @@ public class NewMessageToadlet extends WebPage {
 		Timer sendMessageTimer = Timer.start();
 
 		Timer recipientHandling = sendMessageTimer.startSubTimer();
-		Map<String, String> recipients = new HashMap<String, String>();
+		Map<String, String> recipients = new HashMap<>();
 		for(int i = 0; req.isPartSet("to" + i); i++) {
 			String recipient = getBucketAsString(req.getPart("to" + i));
 			if(recipient.equals("")) {
@@ -275,8 +276,8 @@ public class NewMessageToadlet extends WebPage {
 		identityMatching.log(this, "Time spent matching identities");
 
 		//Check if there were any unknown or ambiguous identities
-		List<String> failedRecipients = new LinkedList<String>();
-		List<Identity> knownRecipients = new LinkedList<Identity>();
+		List<String> failedRecipients = new LinkedList<>();
+		List<Identity> knownRecipients = new LinkedList<>();
 		for(Map.Entry<String, List<Identity>> entry : matches.entrySet()) {
 			if(entry.getValue().size() == 1)
 				knownRecipients.add(entry.getValue().get(0));
@@ -315,21 +316,24 @@ public class NewMessageToadlet extends WebPage {
 		//TODO: Check for newlines etc.
 		for(String recipient : recipients.values()) {
 			//Use the values so we get what the user typed
-			header.append("To: " + recipient + "\r\n");
+			header.append("To: ").append(recipient).append("\r\n");
 		}
 
 		String local = EmailAddress.cleanLocalPart(account.getNickname());
 		if(local.length() == 0) {
 			local = "mail";
 		}
-		header.append("From: " + MailMessage.encodeHeader(account.getNickname())
-				+ " <" + local + "@" + account.getDomain() + ">" + "\r\n");
-
-		header.append("Subject: " + MailMessage.encodeHeader(getBucketAsString(req.getPart("subject"))) + "\r\n");
-		header.append("Date: " + sdf.format(new Date()) + "\r\n");
-		header.append("Message-ID: <" + UUID.randomUUID() + "@" + account.getDomain() + ">\r\n");
-		header.append("Content-Type: text/plain; charset=UTF-8\r\n");
-		header.append("Content-Transfer-Encoding: quoted-printable\r\n");
+		header.append("From: ").append(MailMessage.encodeHeader(account.getNickname()))
+				.append(" <").append(local).append("@").append(account.getDomain()).append(">")
+				.append("\r\n")
+				.append("Subject: ")
+				.append(MailMessage.encodeHeader(getBucketAsString(req.getPart("subject"))))
+				.append("\r\n")
+				.append("Date: ").append(sdf.format(new Date())).append("\r\n")
+				.append("Message-ID: <")
+				.append(UUID.randomUUID()).append("@").append(account.getDomain()).append(">\r\n")
+				.append("Content-Type: text/plain; charset=UTF-8\r\n")
+				.append("Content-Transfer-Encoding: quoted-printable\r\n");
 
 		//Add extra headers from request. Very little checking is done here since we want flexibility, and anything
 		//that can be added here could also be sent using the SMTP server, so security should not be an issue.
@@ -338,11 +342,11 @@ public class NewMessageToadlet extends WebPage {
 			if(extraHeader.matches("[^\\u0000-\\u007F]")) {
 				throw new IllegalArgumentException("Header contains 8bit character(s)");
 			}
-			header.append(extraHeader + "\r\n");
+			header.append(extraHeader).append("\r\n");
 		}
 		header.append("\r\n");
 
-		Bucket messageHeader = new ArrayBucket(header.toString().getBytes("UTF-8"));
+		Bucket messageHeader = new ArrayBucket(header.toString().getBytes(StandardCharsets.UTF_8));
 		Bucket messageText = req.getPart("message-text");
 
 		//Now combine them in a single bucket
@@ -396,15 +400,12 @@ public class NewMessageToadlet extends WebPage {
 		}
 
 		StringBuilder body = new StringBuilder();
-		BufferedReader bodyReader = msg.getBodyReader();
-		try {
+		try (BufferedReader bodyReader = msg.getBodyReader()) {
 			String line = bodyReader.readLine();
-			while(line != null) {
-				body.append(">" + line + "\r\n");
+			while (line != null) {
+				body.append(">").append(line).append("\r\n");
 				line = bodyReader.readLine();
 			}
-		} finally {
-			bodyReader.close();
 		}
 
 		List<String> extraHeaders = readExtraHeaders(req);
@@ -523,11 +524,7 @@ public class NewMessageToadlet extends WebPage {
 			baos.write(buffer, 0, read);
 		}
 
-		try {
-			return new String(baos.toByteArray(), "UTF-8");
-		} catch(UnsupportedEncodingException e) {
-			return null;
-		}
+		return new String(baos.toByteArray(), StandardCharsets.UTF_8);
 	}
 
 	private FreemailAccount getFreemailAccount(ToadletContext ctx) {
@@ -554,16 +551,11 @@ public class NewMessageToadlet extends WebPage {
 	}
 
 	private Bucket bucketFromString(String data) {
-		try {
-			return new ArrayBucket(data.getBytes("UTF-8"));
-		} catch (UnsupportedEncodingException e) {
-			//JVMs are required to support UTF-8, so we can assume it is always available
-			throw new AssertionError("JVM doesn't support UTF-8 charset");
-		}
+		return new ArrayBucket(data.getBytes(StandardCharsets.UTF_8));
 	}
 
 	private List<String> readExtraHeaders(HTTPRequest req) {
-		List<String> extraHeaders = new LinkedList<String>();
+		List<String> extraHeaders = new LinkedList<>();
 		for(int i = 0;; i++) {
 			String header = getBucketAsString(req.getPart("extraHeader" + i));
 			if(header == null) {

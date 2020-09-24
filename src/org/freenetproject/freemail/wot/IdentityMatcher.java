@@ -42,7 +42,7 @@ public class IdentityMatcher {
 			throws PluginNotFoundException, InterruptedException, IOException, WoTException {
 		Map<String, List<Identity>> allMatches = new HashMap<>(recipients.size());
 		for (String recipient : recipients) {
-			allMatches.put(recipient, new LinkedList<Identity>());
+			allMatches.put(recipient, new LinkedList<>());
 		}
 
 		List<Identity> wotIdentities = wotConnection.getAllIdentities();

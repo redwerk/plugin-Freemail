@@ -27,9 +27,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map.Entry;
@@ -130,7 +130,7 @@ class Channel {
 	private final FreemailAccount account;
 	private final Fetcher fetcher = new Fetcher();
 	private final RTSSender rtsSender = new RTSSender();
-	private final AtomicReference<ChannelEventCallback> channelEventCallback = new AtomicReference<ChannelEventCallback>();
+	private final AtomicReference<ChannelEventCallback> channelEventCallback = new AtomicReference<>();
 	private final MessageLog ackLog;
 
 	Channel(File channelDir, ScheduledExecutorService executor, HighLevelFCPClient fcpClient, Freemail freemail, FreemailAccount account, String remoteId) throws ChannelTimedOutException {
@@ -294,12 +294,7 @@ class Channel {
 
 			//Build the header of the inserted message
 			Bucket bucket;
-			try {
-				bucket = new ArrayBucket("messagetype=cts\r\n\r\n".getBytes("UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				//JVMs are required to support UTF-8, so we can assume it is always available
-				throw new AssertionError("JVM doesn't support UTF-8 charset");
-			}
+			bucket = new ArrayBucket("messagetype=cts\r\n\r\n".getBytes(StandardCharsets.UTF_8));
 
 			boolean inserted;
 			try {
@@ -436,7 +431,7 @@ class Channel {
 			"messagetype=message\r\n"
 			+ "id=" + messageId + "\r\n"
 			+ "\r\n";
-		Bucket messageHeader = new ArrayBucket(header.getBytes("UTF-8"));
+		Bucket messageHeader = new ArrayBucket(header.getBytes(StandardCharsets.UTF_8));
 
 		//Now combine them in a single bucket
 		ArrayBucket fullMessage = new ArrayBucket();
@@ -1173,12 +1168,7 @@ class Channel {
 			rtsMessage.append("\r\n");
 
 			byte[] rtsMessageBytes;
-			try {
-				rtsMessageBytes = rtsMessage.toString().getBytes("UTF-8");
-			} catch(UnsupportedEncodingException e) {
-				Logger.error(this, "JVM doesn't support UTF-8 charset", e);
-				return null;
-			}
+			rtsMessageBytes = rtsMessage.toString().getBytes(StandardCharsets.UTF_8);
 
 			return rtsMessageBytes;
 		}
@@ -1193,7 +1183,7 @@ class Channel {
 
 			AsymmetricBlockCipher signatureCipher = new RSAEngine();
 			signatureCipher.init(true, ourPrivateKey);
-			byte[] signature = null;
+			byte[] signature;
 			try {
 				signature = signatureCipher.processBlock(hash, 0, hash.length);
 			} catch(InvalidCipherTextException e) {
@@ -1232,7 +1222,7 @@ class Channel {
 			RSAKeyParameters recipientPublicKey = new RSAKeyParameters(false, new BigInteger(keyModulus, 32), new BigInteger(keyExponent, 32));
 			AsymmetricBlockCipher keyCipher = new RSAEngine();
 			keyCipher.init(true, recipientPublicKey);
-			byte[] encryptedAesParameters = null;
+			byte[] encryptedAesParameters;
 			try {
 				encryptedAesParameters = keyCipher.processBlock(aesKeyAndIV, 0, aesKeyAndIV.length);
 			} catch(InvalidCipherTextException e) {
@@ -1332,12 +1322,7 @@ class Channel {
 				+ "id=" + ackId + "\r\n"
 				+ "\r\n";
 			Bucket bucket;
-			try {
-				bucket = new ArrayBucket(header.getBytes("UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				//JVMs are required to support UTF-8, so we can assume it is always available
-				throw new AssertionError("JVM doesn't support UTF-8 charset");
-			}
+			bucket = new ArrayBucket(header.getBytes(StandardCharsets.UTF_8));
 
 			boolean inserted;
 			try {
@@ -1417,7 +1402,7 @@ class Channel {
 	}
 
 	public interface ChannelEventCallback {
-		public void onAckReceived(long id);
-		public boolean handleMessage(Channel channel, BufferedReader message, long id);
+		void onAckReceived(long id);
+		boolean handleMessage(Channel channel, BufferedReader message, long id);
 	}
 }

@@ -28,7 +28,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 
 import org.junit.Test;
 
@@ -43,7 +42,7 @@ public class IdentityMatcherTest {
 	private static final Identity identity = TestId1Data.Identity.newInstance();
 
 	@Test
-	public void fullIdentityMatch() throws PluginNotFoundException, InterruptedException, TimeoutException, IOException, WoTException {
+	public void fullIdentityMatch() throws PluginNotFoundException, InterruptedException, IOException, WoTException {
 		String recipient = identity.getNickname() + "@" + identity.getIdentityID() + ".freemail";
 		EnumSet<MatchMethod> set = EnumSet.allOf(MatchMethod.class);
 
@@ -51,7 +50,7 @@ public class IdentityMatcherTest {
 	}
 
 	@Test
-	public void fullBase32IdentityMatch() throws PluginNotFoundException, InterruptedException, TimeoutException, IOException, WoTException {
+	public void fullBase32IdentityMatch() throws PluginNotFoundException, InterruptedException, IOException, WoTException {
 		String recipient = identity.getNickname() + "@" + identity.getBase32IdentityID() + ".freemail";
 		EnumSet<MatchMethod> set = EnumSet.of(MatchMethod.FULL_BASE32);
 
@@ -59,7 +58,7 @@ public class IdentityMatcherTest {
 	}
 
 	@Test
-	public void fullBase32MatchWithOnlyId() throws PluginNotFoundException, InterruptedException, TimeoutException, IOException, WoTException {
+	public void fullBase32MatchWithOnlyId() throws PluginNotFoundException, InterruptedException, IOException, WoTException {
 		String recipient = identity.getBase32IdentityID();
 		EnumSet<MatchMethod> set = EnumSet.of(MatchMethod.FULL_BASE32);
 
@@ -67,11 +66,11 @@ public class IdentityMatcherTest {
 	}
 
 	private void runMatcherTest(String recipient, EnumSet<MatchMethod> methods)
-			throws PluginNotFoundException, InterruptedException, IOException, TimeoutException, WoTException {
+			throws PluginNotFoundException, InterruptedException, IOException, WoTException {
 		MockWoTConnection wotConnection = new MockWoTConnection(null, null);
 		wotConnection.setTrustedIdentities(Collections.singleton(identity));
-		wotConnection.setUntrustedIdentities(Collections.<Identity>emptySet());
-		wotConnection.setOwnIdentities(Collections.<OwnIdentity>emptyList());
+		wotConnection.setUntrustedIdentities(Collections.emptySet());
+		wotConnection.setOwnIdentities(Collections.emptyList());
 
 		IdentityMatcher identityMatcher = new IdentityMatcher(wotConnection);
 		Set<String> recipients = Collections.singleton(recipient);
@@ -83,11 +82,11 @@ public class IdentityMatcherTest {
 	}
 
 	@Test
-	public void fullMatchWithPartialId() throws PluginNotFoundException, InterruptedException, IOException, TimeoutException, WoTException {
+	public void fullMatchWithPartialId() throws PluginNotFoundException, InterruptedException, IOException, WoTException {
 		MockWoTConnection wotConnection = new MockWoTConnection(null, null);
 		wotConnection.setTrustedIdentities(Collections.singleton(identity));
-		wotConnection.setUntrustedIdentities(Collections.<Identity>emptySet());
-		wotConnection.setOwnIdentities(Collections.<OwnIdentity>emptyList());
+		wotConnection.setUntrustedIdentities(Collections.emptySet());
+		wotConnection.setOwnIdentities(Collections.emptyList());
 
 		IdentityMatcher identityMatcher = new IdentityMatcher(wotConnection);
 
@@ -107,11 +106,11 @@ public class IdentityMatcherTest {
 	}
 
 	@Test
-	public void errorReturnFromTrusted() throws PluginNotFoundException, InterruptedException, IOException, TimeoutException, WoTException {
+	public void errorReturnFromTrusted() throws PluginNotFoundException, InterruptedException, IOException, WoTException {
 		MockWoTConnection wotConnection = new MockWoTConnection(null, null);
 		wotConnection.setTrustedIdentities(null);
-		wotConnection.setUntrustedIdentities(Collections.<Identity>emptySet());
-		wotConnection.setOwnIdentities(Collections.<OwnIdentity>emptyList());
+		wotConnection.setUntrustedIdentities(Collections.emptySet());
+		wotConnection.setOwnIdentities(Collections.emptyList());
 
 		IdentityMatcher identityMatcher = new IdentityMatcher(wotConnection);
 
@@ -125,11 +124,11 @@ public class IdentityMatcherTest {
 	}
 
 	@Test
-	public void errorReturnFromUntrusted() throws PluginNotFoundException, InterruptedException, IOException, TimeoutException, WoTException {
+	public void errorReturnFromUntrusted() throws PluginNotFoundException, InterruptedException, IOException, WoTException {
 		MockWoTConnection wotConnection = new MockWoTConnection(null, null);
-		wotConnection.setTrustedIdentities(Collections.<Identity>emptySet());
+		wotConnection.setTrustedIdentities(Collections.emptySet());
 		wotConnection.setUntrustedIdentities(null);
-		wotConnection.setOwnIdentities(Collections.<OwnIdentity>emptyList());
+		wotConnection.setOwnIdentities(Collections.emptyList());
 
 		IdentityMatcher identityMatcher = new IdentityMatcher(wotConnection);
 
@@ -143,10 +142,10 @@ public class IdentityMatcherTest {
 	}
 
 	@Test
-	public void errorReturnFromOwnIds() throws PluginNotFoundException, InterruptedException, IOException, TimeoutException, WoTException {
+	public void errorReturnFromOwnIds() throws PluginNotFoundException, InterruptedException, IOException, WoTException {
 		MockWoTConnection wotConnection = new MockWoTConnection(null, null);
-		wotConnection.setTrustedIdentities(Collections.<Identity>emptySet());
-		wotConnection.setUntrustedIdentities(Collections.<Identity>emptySet());
+		wotConnection.setTrustedIdentities(Collections.emptySet());
+		wotConnection.setUntrustedIdentities(Collections.emptySet());
 		wotConnection.setOwnIdentities(null);
 
 		IdentityMatcher identityMatcher = new IdentityMatcher(wotConnection);

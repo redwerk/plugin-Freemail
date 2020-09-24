@@ -29,8 +29,6 @@ import org.freenetproject.freemail.wot.Identity;
 import org.freenetproject.freemail.wot.OwnIdentity;
 import org.freenetproject.freemail.wot.WoTConnection;
 
-import freenet.pluginmanager.PluginNotFoundException;
-
 public class MockWoTConnection implements WoTConnection {
 	private final Map<String, Map<String, Identity>> identityMap;
 	private final Map<String, Map<String, String>> properties;
@@ -44,11 +42,6 @@ public class MockWoTConnection implements WoTConnection {
 		this.properties = properties;
 	}
 
-
-	/*
-	 * Functions for controlling the return value of the overridden ones
-	 */
-
 	public void setOwnIdentities(List<OwnIdentity> ownIdentities) {
 		this.ownIdentities = ownIdentities;
 	}
@@ -61,13 +54,8 @@ public class MockWoTConnection implements WoTConnection {
 		this.untrustedIdentities = untrustedIdentities;
 	}
 
-
-	/*
-	 * The overridden functions
-	 */
-
 	@Override
-	public List<OwnIdentity> getAllOwnIdentities() throws PluginNotFoundException {
+	public List<OwnIdentity> getAllOwnIdentities() {
 		return ownIdentities;
 	}
 
@@ -87,17 +75,17 @@ public class MockWoTConnection implements WoTConnection {
 	}
 
 	@Override
-	public Set<Identity> getAllTrustedIdentities(String trusterId) throws PluginNotFoundException {
+	public Set<Identity> getAllTrustedIdentities(String trusterId) {
 		return trustedIdentities;
 	}
 
 	@Override
-	public Set<Identity> getAllUntrustedIdentities(String trusterId) throws PluginNotFoundException {
+	public Set<Identity> getAllUntrustedIdentities(String trusterId) {
 		return untrustedIdentities;
 	}
 
 	@Override
-	public Identity getIdentity(String identity, String truster) throws PluginNotFoundException {
+	public Identity getIdentity(String identity, String truster) {
 		Logger.debug(this, "getIdentity(identity=" + identity + ", truster=" + truster + ")");
 
 		if(identityMap == null) {
@@ -117,12 +105,12 @@ public class MockWoTConnection implements WoTConnection {
 	}
 
 	@Override
-	public boolean setProperty(String identity, String key, String value) throws PluginNotFoundException {
+	public boolean setProperty(String identity, String key, String value) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public String getProperty(String identity, String key) throws PluginNotFoundException {
+	public String getProperty(String identity, String key) {
 		Logger.debug(this, "getProperty(identity=" + identity + ", key=" + key + ")");
 
 		if(properties == null) {
@@ -142,7 +130,7 @@ public class MockWoTConnection implements WoTConnection {
 	}
 
 	@Override
-	public boolean setContext(String identity, String context) throws PluginNotFoundException {
+	public boolean setContext(String identity, String context) {
 		throw new UnsupportedOperationException();
 	}
 }
