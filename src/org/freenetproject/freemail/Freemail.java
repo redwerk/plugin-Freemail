@@ -41,7 +41,6 @@ import org.freenetproject.freemail.utils.Logger;
 import org.freenetproject.freemail.utils.Timer;
 import org.freenetproject.freemail.wot.WoTConnection;
 
-
 public abstract class Freemail implements ConfigClient {
 	private static final ScheduledThreadPoolExecutor defaultExecutor =
 			new ScheduledThreadPoolExecutor(10, new FreemailThreadFactory("Freemail executor thread"));
@@ -241,7 +240,6 @@ public abstract class Freemail implements ConfigClient {
 			}
 			fcpThreadJoin.log(this, 1, TimeUnit.SECONDS, "Time spent joining FCP thread");
 		} catch (InterruptedException ie) {
-
 		}
 
 		Timer executorTermination = terminateTimer.startSubTimer();

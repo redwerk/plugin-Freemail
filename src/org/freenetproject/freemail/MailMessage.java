@@ -32,10 +32,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -46,6 +48,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
@@ -55,6 +58,7 @@ import org.bouncycastle.util.encoders.Hex;
 import org.freenetproject.freemail.imap.IMAPMessageFlags;
 import org.freenetproject.freemail.utils.Logger;
 
+import freenet.support.MediaType;
 
 public class MailMessage {
 	private static final Set<String> dateFormats;
@@ -295,8 +299,8 @@ public class MailMessage {
 			String line;
 
 			while((line = br.readLine()) != null) {
-				counter += line.getBytes("UTF-8").length;
-				counter += "\r\n".getBytes("UTF-8").length;
+				counter += line.getBytes(StandardCharsets.UTF_8).length;
+				counter += "\r\n".getBytes(StandardCharsets.UTF_8).length;
 			}
 
 			return counter;
@@ -459,7 +463,7 @@ public class MailMessage {
 
 		if(encoding.equalsIgnoreCase("B")) {
 			//Base64 encoding
-			byte[] bytes = Base64.decode(text.getBytes("UTF-8"));
+			byte[] bytes = Base64.decode(text.getBytes(StandardCharsets.UTF_8));
 			return new String(bytes, charset);
 		}
 
@@ -568,7 +572,7 @@ public class MailMessage {
 
 			//Encode the rest
 			//FIXME: There has to be a better way than wrapping with arrays everywhere...
-			Charset utf8 = Charset.forName("UTF-8");
+			Charset utf8 = StandardCharsets.UTF_8;
 			ByteBuffer bytes = utf8.encode(CharBuffer.wrap(new char[] {c}));
 			result.append("=?UTF-8?Q?");
 			while(bytes.hasRemaining()) {
@@ -584,7 +588,7 @@ public class MailMessage {
 	}
 
 	public BufferedReader getBodyReader() throws IOException {
-		BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
+		BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
 
 		//Read past the headers and store them if they haven't been read
 		//already
@@ -639,22 +643,24 @@ public class MailMessage {
 			if(contentType == null) {
 				contentType = "text/plain; charset=us-ascii";
 			}
-			String[] parts = contentType.split(";");
-			if(!parts[0].equalsIgnoreCase("text/plain")) {
-				throw new UnsupportedEncodingException("Can't handle content types other than text/plain. Type was "
-						+ parts[0]);
+			MediaType parsedType;
+			try {
+				parsedType = new MediaType(contentType);
+			} catch (MalformedURLException e) {
+				throw new UnsupportedEncodingException("Can't handle content type: \""+contentType+"\" : "+e.getMessage());
+			}
+			if (!(parsedType.getType().equals("text") && parsedType.getSubtype().equals("plain"))) {
+				throw new UnsupportedEncodingException("Can't handle content types other than text/plain. Type was " + parsedType);
+			}
+			String charsetName = parsedType.getParameter("charset");
+			if (charsetName == null) charsetName = "us-ascii";
+			Map<String,String> params = parsedType.getParameters();
+			params.remove("charset");
+			if (!params.isEmpty()) {
+				throw new UnsupportedEncodingException(
+						"Can't handle text/plain with parameter other than charset. Unrecognised parameters were: " + params);
 			}
 
-			String[] charsetParts = parts[1].trim().split("=", 2);
-			if(!charsetParts[0].equalsIgnoreCase("charset")) {
-				throw new UnsupportedEncodingException("Can't handle text/plain with parameter other than charset. "
-						+ "Parameter was " + charsetParts[0]);
-			}
-
-			String charsetName = charsetParts[1];
-			if(charsetName.startsWith("\"") && charsetName.endsWith("\"")) {
-				charsetName = charsetName.substring(1, charsetName.length() - 1);
-			}
 			charset = Charset.forName(charsetName);
 		}
 
