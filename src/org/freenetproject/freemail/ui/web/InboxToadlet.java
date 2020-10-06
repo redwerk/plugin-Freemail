@@ -383,7 +383,7 @@ public class InboxToadlet extends WebPage {
 
 		public static SortField fromString(String field) {
 			try {
-				return SortField.fromString(field.toUpperCase());
+				return SortField.valueOf(field.toUpperCase());
 			} catch (IllegalArgumentException e) {
 				return null;
 			}
